@@ -15,6 +15,63 @@ compilePKGS(T)
 ## 2017-02-22: Version 0.2 loose coupling for environment
 ## 2017-02-05: Version 0.1
 
+read.mq.file <- function(mq.files, parallel=PARALLEL.THRESHOLD.READ.FILES) {
+  # ''' read mq files (V) '''
+  # @param mq.files: MetaQuote files.
+  # @return:
+  # 2017-02-22: Version 1.0 parallel mode update
+  #             @Note: over 15 files goes parallel mode
+  # 2017-02-12: Version 0.3 fix file path for input mode
+  # 2017-02-07: Version 0.2 parallel
+  # 2017-02-05: Version 0.1
+  if (is.data.frame(mq.files)) {
+    mq.names <- mq.files$name
+    mq.files <- mq.files$datapath
+  } else {
+    mq.names <- basename(mq.files)
+  }
+  if (is.numeric(parallel)) {
+    parallel <- length(mq.files) >= parallel
+  }
+  if (!parallel) {
+    mapply(fetch.file.data, mq.files, mq.names, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  } else {
+    cluster <- makeCluster(detectCores() - 1)
+    fetched.data <- clusterMap(cluster, fetch.file.data, mq.files, mq.names, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    stopCluster(cluster)
+    fetched.data
+  }
+} # FINISH
+
+fetch.file.data <- function(mq.file, mq.file.name) {
+  # ''' fetch mq file's data (S) '''
+  # @param mq.files: MetaQuote file.
+  # @param mq.names: MetaQuote file-name.
+  # @return: data of MetaQuote file.
+  # 2017-02-05: Version 0.1
+  mq.file.name %>% {
+    if (grepl('.(html|htm)$', .)) {
+      html.report.phase1(mq.file)
+    } else if (grepl('.(xlsx|xls)$', .)) {
+      ## ToDo ####
+      fetch.excel.data(mq.file, mq.file.name)
+    } else if (grepl('.(csv)$', .)) {
+      ## ToDo ####
+      fetch.csv.data(mq.file, mq.file.name)
+    } else {
+      NULL
+    }
+  } %>% {
+    if (is.null(.)) {
+      mq.file.name
+    } else {
+      within(., {
+        INFOS[, FILE := mq.file.name]
+        PHASE <- 1
+      })
+    }
+  }
+}
 
 #### HTML FILE TYPES EIGEN ####
 HTML.FILE.TYPES.EIGEN <- c(
@@ -25,7 +82,6 @@ HTML.FILE.TYPES.EIGEN <- c(
   'MT4M-CLOSED' = 'Closed Trades Report',
   'MT4M-RAW' = 'Raw Report'
 )
-
 
 html.report.phase1 <- function(mq.file) {
   tryCatch(
@@ -41,45 +97,31 @@ html.report.phase1 <- function(mq.file) {
     read_html %>%
     xml_find_first('.//title') %>%
     xml_text %>% {
-      if (grepl(FILE.TYPES.EIGEN['MT4-EA'], .)) {
+      if (grepl(HTML.FILE.TYPES.EIGEN['MT4-EA'], .)) {
         html.parse <- read_html(mq.file, encoding = 'GBK')
-        # infos <- fetch.html.data.infos.mt4ea(html.parse)
         list(
           INFOS = fetch.html.data.infos.mt4ea(html.parse)
         ) %>%
           append(fetch.html.data.others.mt4ea(html.parse))
       } else if (grepl(HTML.FILE.TYPES.EIGEN['MT4-TRADE'], .)) {
         html.parse <- read_html(mq.file, encoding = 'GBK')
-        # infos <- fetch.html.data.infos.mt4trade(html.parse)
         list(
           INFOS = fetch.html.data.infos.mt4trade(html.parse)
         ) %>%
           append(fetch.html.data.others.mt4trade(html.parse))
       } else if (grepl(HTML.FILE.TYPES.EIGEN['MT5-EA'], .)) {
-        # html.parse <- read_html(mq.file, encoding = 'UTF-16')
-        # infos <- fetch.html.data.infos.mt5ea(html.parse)
         read_html(mq.file, encoding = 'UTF-16') %>% fetch.html.data.infos.mt5ea %>% list(INFOS = .)
       } else if (grepl(HTML.FILE.TYPES.EIGEN['MT5-TRADE'], .)) {
-        # html.parse <- read_html(mq.file, encoding = 'UTF-16')
-        # infos <- fetch.html.data.infos.mt5trade(html.parse)
         read_html(mq.file, encoding = 'UTF-16') %>% fetch.html.data.infos.mt5trade %>% list(INFOS = .)
       } else if (grepl(HTML.FILE.TYPES.EIGEN['MT4M-CLOSED'], .)) {
-        # html.parse <- 'NEEDLESS'
-        # infos <- fetch.html.data.infos.mt4m_closed()
         fetch.html.data.infos.mt4m_closed() %>% list(INFOS = .)
       } else if (grepl(HTML.FILE.TYPES.EIGEN['MT4M-RAW'], .)) {
-        # html.parse <- 'NEEDLESS'
-        # infos <- fetch.html.data.infos.mt4m_raw()
         fetch.html.data.infos.mt4m_raw() %>% list(INFOS = .)
       } else {
         NULL
       }
     }
 }
-
-#### PHASE1 ####
-html.report.phase1
-
 
 #### INFOS ####
 INFOS.TABLE <- data.table(
