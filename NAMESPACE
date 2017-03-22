@@ -2,5 +2,6 @@ import(magrittr)
 import(data.table)
 import(xml2)
 importFrom(stringr, str_detect, str_replace_all, str_extract)
+importFrom(lubridate, ymd_hms, ymd_hm, ymd, interval, as.period, int_start, int_end)
 
 exportPattern("^[[:alpha:]]+")

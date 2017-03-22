@@ -214,32 +214,28 @@ format.infos.time <- function(time) {
 } # FINISH
 
 format.time.all.to.numeric <- function(time) {
-  if (is.na(time) || is.numeric(time)) {
-    return(time)
-  }
-  if (is.character(time)) {
-    if (grepl(',', time)) {
-      time <- format.mt4trade.infos.time(time)
+  nchar(time) %>% {
+    if (equals(., 19)) {
+      ymd_hms(time, tz = 'GMT')
+    } else if (equals(., 16) | grepl(',', time)) {
+      ymd_hm(time, tz = 'GMT')
+    } else if (equals(., 10)) {
+      ymd(time, tz = 'GMT')
     } else {
-      time <- gsub('-', '.', time)
-      format <- '%Y.%m.%d %H:%M:%S'
-      sub_format <- substr(format, 1, nchar(time) - 2)
-      time <- as.POSIXct(time, format = sub_format, tz = 'GMT')
+      ymd_hms(NA_character_, tz = 'GMT')
     }
-    return(as.numeric(time))
   }
-  NA
 } # FINISH
 
-format.mt4trade.infos.time <- function(time) {
-  # ''' format mt4trade info time '''
-  # 2016-08-16: Version 1.0
-  ydm_hm(time, tz = 'GMT')
-} # FINISH
-
-time.numeric.to.posixct <- function(time) {
-  as.POSIXct(time, origin = '1970-01-01', tz = 'GMT')
-} # FINISH
+# format.mt4trade.infos.time <- function(time) {
+#   # ''' format mt4trade info time '''
+#   # 2016-08-16: Version 1.0
+#   ydm_hm(time, tz = 'GMT')
+# } # FINISH
+# 
+# time.numeric.to.posixct <- function(time) {
+#   as.POSIXct(time, origin = '1970-01-01', tz = 'GMT')
+# } # FINISH
 
 
 #### OTHERS ####
