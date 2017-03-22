@@ -1,1 +1,6 @@
+import(magrittr)
+import(data.table)
+import(xml2)
+importFrom(stringr, str_detect, str_replace_all, str_extract)
+
 exportPattern("^[[:alpha:]]+")

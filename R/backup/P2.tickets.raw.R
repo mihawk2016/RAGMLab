@@ -143,26 +143,26 @@ fetch.html.data.tickets.mt4ea <- function(mq.file, mq.file.parse, get.open.fun, 
     as.data.table %>%
     set_colnames(c('deal', 'time', 'type', 'ticket', 'volume', 'price', 'sl', 'tp', 'profit', 'balance')) %>%
     extract(type != 'modify', !c('deal', 'balance'), with = FALSE)
-  mq.file.parse <- read_html(mq.file, encoding = 'GBK') #### just for parallel, fix later ####
-  xml.text <-
-    mq.file.parse %>%
-    xml_find_first('.//table') %>%
-  xml_find_all('.//td') %>%
-  xml_text
-  deposit <-
-    xml.text %>%
-    extract(24) %>%
-    as.numeric
-  time.string <- xml.text[4]
-  len.time.string <- nchar(time.string)
-  deposit.time <-
-    time.string %>%
-    substr(len.time.string - 23, len.time.string - 14) %>%
-    format.time.all.to.numeric
-  end.time <-
-    time.string %>%
-    substr(len.time.string - 10, len.time.string - 1) %>%
-    format.time.all.to.numeric
+  # mq.file.parse <- read_html(mq.file, encoding = 'GBK') #### just for parallel, fix later ####
+  # xml.text <-
+  #   mq.file.parse %>%
+  #   xml_find_first('.//table') %>%
+  # xml_find_all('.//td') %>%
+  # xml_text
+  # deposit <-
+  #   xml.text %>%
+  #   extract(24) %>%
+  #   as.numeric
+  # time.string <- xml.text[4]
+  # len.time.string <- nchar(time.string)
+  # deposit.time <-
+  #   time.string %>%
+  #   substr(len.time.string - 23, len.time.string - 14) %>%
+  #   format.time.all.to.numeric
+  # end.time <-
+  #   time.string %>%
+  #   substr(len.time.string - 10, len.time.string - 1) %>%
+  #   format.time.all.to.numeric
   money.tickets <-
     data.table(
       TICKET = 0,
@@ -174,10 +174,10 @@ fetch.html.data.tickets.mt4ea <- function(mq.file, mq.file.parse, get.open.fun, 
   if (!rows) {
     return(money.tickets)
   }
-  item <-
-    xml.text %>%
-    extract(2) %>%
-    gsub(' ([ \\(\\)[:alpha:]])*', '', .)
+  # item <-
+  #   xml.text %>%
+  #   extract(2) %>%
+  #   gsub(' ([ \\(\\)[:alpha:]])*', '', .)
   table.index <- 1:rows
   table.types <- table[, type]
   table.tickets <- table[, ticket]
@@ -245,14 +245,14 @@ fetch.html.data.tickets.mt4trade <- function(mq.file, mq.file.parse) {
   if (!length(ticket.index)) {
     return(NULL)
   }
-  table %<>%
-    extract(ticket.index) %>%
-    extract(j = COMMENT := xml_find_first(mq.file.parse, './/table') %>%
-              xml_find_all('.//tr') %>%
-              xml_find_first('.//td') %>%
-              xml_attr('title', default = '') %>%
-              extract(-1) %>%
-              extract(ticket.index)) %>%
+  # table %<>%
+  #   extract(ticket.index) %>%
+  #   extract(j = COMMENT := xml_find_first(mq.file.parse, './/table') %>%
+  #             xml_find_all('.//tr') %>%
+  #             xml_find_first('.//td') %>%
+  #             xml_attr('title', default = '') %>%
+  #             extract(-1) %>%
+  #             extract(ticket.index)) %>%
     set_colnames(TICKETS.COLUMNS$UNIFORM[1:15]) %>%
     setkey(CTIME) %>%
     extract(j = NAs := rowSums(is.na(.))) %>%
