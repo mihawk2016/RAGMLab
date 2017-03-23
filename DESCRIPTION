@@ -5,6 +5,7 @@ Version: 1.0
 Date: 2017-03-20
 Author: Zhang Zhang <mihawk20101@sina.com>
 Maintainer: Zhang Zhang <mihawk20101@sina.com>
+Depends: magrittr, parallel, RMySQL, DBI, data.table, xml2, XML, stringr, lubridate, zoo
 Description: financial analysis tools
 License: GNU-3.0
 Encoding: UTF-8

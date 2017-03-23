@@ -1,4 +1,4 @@
 library(testthat)
-library(RAGMLab)
+library(rAGMLab)
 
-test_check("RAGMLab")
+test_check("rAGMLab")

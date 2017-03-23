@@ -34,16 +34,16 @@ read.mq.file <- function(mq.files, parallel=PARALLEL.THRESHOLD.READ.FILES) {
     parallel <- length(mq.files) >= parallel
   }
   if (!parallel) {
-    mapply(fetch.file.data, mq.files, mq.names, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    mapply(report.phase1, mq.files, mq.names, SIMPLIFY = FALSE, USE.NAMES = FALSE)
   } else {
     cluster <- makeCluster(detectCores() - 1)
-    fetched.data <- clusterMap(cluster, fetch.file.data, mq.files, mq.names, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    fetched.data <- clusterMap(cluster, report.phase1, mq.files, mq.names, SIMPLIFY = FALSE, USE.NAMES = FALSE)
     stopCluster(cluster)
     fetched.data
   }
 } # FINISH
 
-fetch.file.data <- function(mq.file, mq.file.name) {
+report.phase1 <- function(mq.file, mq.file.name) {
   # ''' fetch mq file's data (S) '''
   # @param mq.files: MetaQuote file.
   # @param mq.names: MetaQuote file-name.
@@ -54,10 +54,12 @@ fetch.file.data <- function(mq.file, mq.file.name) {
       html.report.phase1(mq.file)
     } else if (grepl('.(xlsx|xls)$', .)) {
       ## ToDo ####
-      fetch.excel.data(mq.file, mq.file.name)
+      # fetch.excel.data(mq.file, mq.file.name)
+      NULL
     } else if (grepl('.(csv)$', .)) {
       ## ToDo ####
-      fetch.csv.data(mq.file, mq.file.name)
+      # fetch.csv.data(mq.file, mq.file.name)
+      NULL
     } else {
       NULL
     }
@@ -67,6 +69,7 @@ fetch.file.data <- function(mq.file, mq.file.name) {
     } else {
       within(., {
         INFOS[, FILE := mq.file.name]
+        PATH <- mq.file
         PHASE <- 1
       })
     }
@@ -132,7 +135,7 @@ INFOS.TABLE <- data.table(
   BROKER = NA_character_,
   CURRENCY = NA_character_,
   LEVERAGE = NA_integer_,
-  TIME = as.POSIXct(NA, origin = '1970-01-01', tz = 'GMT')
+  TIME = ymd_hms(NA, tz = 'GMT', quiet = TRUE)
 )
 
 fetch.html.data.infos.mt4ea <- function(mq.file.parse) {
@@ -197,7 +200,7 @@ fetch.html.data.infos.mt5trade <- function(mq.file.parse) {
              format.infos.broker(table.values[grep('Broker:', table.values) + 1]),
              format.infos.currency(account.currency.leverage),
              format.infos.leverage(account.currency.leverage),
-             format.infos.time(format.infos.time(table.values[grep('Date:', table.values) + 1]) - 8 * 3600))
+             format.infos.time(table.values[grep('Date:', table.values) + 1]) - 8 * 3600)
     )
 } # FINISH
 
@@ -252,10 +255,6 @@ format.infos.leverage <- function(leverage) {
 format.infos.time <- function(time) {
   # ''' format report info: time '''
   # 2017-01-16: Version 0.1
-  format.time.all.to.numeric(time)
-} # FINISH
-
-format.time.all.to.numeric <- function(time) {
   nchar(time) %>% {
     if (equals(., 19)) {
       ymd_hms(time, tz = 'GMT')
@@ -264,21 +263,10 @@ format.time.all.to.numeric <- function(time) {
     } else if (equals(., 10)) {
       ymd(time, tz = 'GMT')
     } else {
-      ymd_hms(NA_character_, tz = 'GMT')
+      ymd_hms(NA, tz = 'GMT', quiet = TRUE)
     }
   }
 } # FINISH
-
-# format.mt4trade.infos.time <- function(time) {
-#   # ''' format mt4trade info time '''
-#   # 2016-08-16: Version 1.0
-#   ydm_hm(time, tz = 'GMT')
-# } # FINISH
-# 
-# time.numeric.to.posixct <- function(time) {
-#   as.POSIXct(time, origin = '1970-01-01', tz = 'GMT')
-# } # FINISH
-
 
 #### OTHERS ####
 fetch.html.data.others.mt4ea <- function(mq.file.parse) {
@@ -287,8 +275,8 @@ fetch.html.data.others.mt4ea <- function(mq.file.parse) {
   len.time.string <- nchar(time.string)
   list(
     .DEPOSIT = xml.text %>% extract(24) %>% as.numeric,
-    .DEPOSIT.TIME = time.string %>% substr(len.time.string - 23, len.time.string - 14) %>% format.time.all.to.numeric,
-    .END.TIME = time.string %>% substr(len.time.string - 10, len.time.string - 1) %>% format.time.all.to.numeric,
+    .DEPOSIT.TIME = time.string %>% substr(len.time.string - 23, len.time.string - 14) %>% format.infos.time,
+    .END.TIME = time.string %>% substr(len.time.string - 10, len.time.string - 1) %>% format.infos.time,
     .ITEM = xml.text %>% extract(2) %>% gsub(' ([ \\(\\)[:alpha:]])*', '', .)
   )
 }
