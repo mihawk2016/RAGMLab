@@ -287,3 +287,4 @@ fetch.html.data.others.mt4trade <- function(mq.file.parse) {
       xml_attr('title', default = '') %>% extract(-1)
   )
 }
+
