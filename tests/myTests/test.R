@@ -20,5 +20,5 @@ test.phase1 <- function(choice) {
 
 
 #### TEST ####
-# TEST.RESULT <- test.phase1('MT4M-Raw') %>% lapply(html.tickets.raw) %T>% print
-TEST.RESULT <- test.phase1('MT4-EA') %>% lapply(html.report.phase2) %T>% print
+# TEST.RESULT <- test.phase1() %>% lapply(html.tickets.raw) %T>% print
+TEST.RESULT <- test.phase1('MT5-Trade') %>% lapply(html.report.phase2) %T>% print

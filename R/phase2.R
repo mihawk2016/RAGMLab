@@ -2,32 +2,48 @@ library(compiler)
 compilePKGS(T)
 
 #### @UPDATE IDEA@ ####
-## 2017-02-15: mt4 ea method can be more (data.table)able
+## 2017-02-15: @DONE mt4 ea method can be more (data.table)able
 
 #### @PATCH NOTE@ ####
 ## 2017-02-12: Version 0.1
 
+html.reports.phase2 <- function(html.reports.phase1, default.currency=DEFAULT.CURRENCY,
+                                default.leverage=DEFAULT.LEVERAGE, get.open.fun=DB.O, mysql.setting=MYSQL.SETTING,
+                                timeframe.tickvalue='M1', symbols.setting=SYMBOLS.SETTING,
+                                parallel=PARALLEL.THRESHOLD.GENERATE.TICKETS) {
+  if (is.numeric(parallel)) {
+    parallel <- length(report) >= parallel
+  }
+  if (!parallel) {
+    phase2data <- lapply(html.reports.phase1, html.report.phase2, default.currency, default.leverage, get.open.fun,
+                         mysql.setting, timeframe.tickvalue, symbols.setting)
+  } else {
+    cluster <- makeCluster(detectCores() - 1)
+    phase2data <- parLapply(cluster, html.reports.phase1, html.report.phase2, default.currency, default.leverage,
+                            get.open.fun, mysql.setting, timeframe.tickvalue, symbols.setting)
+    stopCluster(cluster)
+  }
+  phase2data
+}
 
-
-
-
-
-
-
-
-
-html.report.phase2 <- function(report.phase1, default.currency=DEFAULT.CURRENCY, default.leverage=DEFAULT.LEVERAGE,
-                               get.open.fun=DB.O, mysql.setting=MYSQL.SETTING, timeframe.tickvalue='M1',
-                               symbols.setting=SYMBOLS.SETTING) {
-  within(report.phase1, {
+html.report.phase2 <- function(html.report.phase1, default.currency=DEFAULT.CURRENCY,
+                               default.leverage=DEFAULT.LEVERAGE, get.open.fun=DB.O, mysql.setting=MYSQL.SETTING,
+                               timeframe.tickvalue='M1', symbols.setting=SYMBOLS.SETTING) {
+  within(html.report.phase1, {
     CURRENCY <- report.currency(INFOS, default.currency)
     LEVERAGE <- report.leverage(INFOS, default.leverage)
-    TICKETS <- html.tickets.raw(report.phase1, CURRENCY, get.open.fun,
+    TICKETS <- html.tickets.raw(html.report.phase1, CURRENCY, get.open.fun,
                                 mysql.setting, timeframe.tickvalue, symbols.setting)
     ITEM.SYMBOL.MAPPING <- item.symbol.mapping(TICKETS, symbols.setting[, SYMBOL])
     SUPPORTED.ITEM <- supported.items(ITEM.SYMBOL.MAPPING)
     UNSUPPORTED.ITEM <- unsupported.items(ITEM.SYMBOL.MAPPING)
     TICKETS[, SYMBOL := ITEM.SYMBOL.MAPPING[ITEM[1]], by = ITEM]
+    if (INFOS[, TYPE] == 'MT4-EA') {
+      .DEPOSIT <- .DEPOSIT.TIME <- .END.TIME <- .ITEM <- NULL
+    }
+    if (INFOS[, TYPE] == 'MT4-Trade') {
+      .COMMENT <- NULL
+    }
     PHASE <- 2
   })
 }
@@ -39,26 +55,26 @@ tickets.supported <- function(report) {
 } # FINISH
 
 #### FETCH TICKETS RAW ####
-html.tickets.raw <- function(report.phase1, currency, get.open.fun=DB.O, mysql.setting=MYSQL.SETTING,
+html.tickets.raw <- function(html.report.phase1, currency, get.open.fun=DB.O, mysql.setting=MYSQL.SETTING,
                              timeframe.tickvalue='M1', symbols.setting=SYMBOLS.SETTING) {
   switch(
-    report.phase1$INFOS[, TYPE],
-    'MT4-EA' = fetch.html.data.tickets.mt4ea(report.phase1, get.open.fun, mysql.setting, timeframe.tickvalue,
+    html.report.phase1$INFOS[, TYPE],
+    'MT4-EA' = fetch.html.data.tickets.mt4ea(html.report.phase1, get.open.fun, mysql.setting, timeframe.tickvalue,
                                              currency, symbols.setting),
-    'MT4-Trade' = fetch.html.data.tickets.mt4trade(report.phase1),
-    'MT5-EA' = fetch.html.data.tickets.mt5ea(report.phase1, get.open.fun, mysql.setting, timeframe.tickvalue,
+    'MT4-Trade' = fetch.html.data.tickets.mt4trade(html.report.phase1),
+    'MT5-EA' = fetch.html.data.tickets.mt5ea(html.report.phase1, get.open.fun, mysql.setting, timeframe.tickvalue,
                                              currency, symbols.setting),
-    'MT5-Trade' = fetch.html.data.tickets.mt5trade(report.phase1, get.open.fun, mysql.setting, timeframe.tickvalue,
-                                                   currency, symbols.setting),
-    'MT4M-Closed' = fetch.html.data.tickets.mt4m_closed(report.phase1),
-    'MT4M-Raw' = fetch.html.data.tickets.mt4m_raw(report.phase1)
+    'MT5-Trade' = fetch.html.data.tickets.mt5trade(html.report.phase1, get.open.fun, mysql.setting,
+                                                   timeframe.tickvalue, currency, symbols.setting),
+    'MT4M-Closed' = fetch.html.data.tickets.mt4m_closed(html.report.phase1),
+    'MT4M-Raw' = fetch.html.data.tickets.mt4m_raw(html.report.phase1)
     )
 } # FINISH
 
-fetch.html.data.tickets.mt4ea <- function(report.phase1, get.open.fun, mysql.setting, timeframe.tickvalue,
+fetch.html.data.tickets.mt4ea <- function(html.report.phase1, get.open.fun, mysql.setting, timeframe.tickvalue,
                                           currency, symbols.setting) {
   table <-
-    readHTMLTable(report.phase1$PATH, stringsAsFactors = FALSE, encoding = 'GBK', which = 2,
+    readHTMLTable(html.report.phase1$PATH, stringsAsFactors = FALSE, encoding = 'GBK', which = 2,
                   colClasses = c('character', time.char.to.posixct, 'character', num.char.to.num, num.char.to.num,
                                  num.char.to.num, num.char.to.num, num.char.to.num, num.char.to.num, 'character')) %>%
     as.data.table %>%
@@ -66,14 +82,14 @@ fetch.html.data.tickets.mt4ea <- function(report.phase1, get.open.fun, mysql.set
     extract(type != 'modify', !c('deal', 'balance'), with = FALSE)
   data.table(
     TICKET = 0,
-    OTIME = report.phase1$.DEPOSIT.TIME,
-    PROFIT = report.phase1$.DEPOSIT
+    OTIME = html.report.phase1$.DEPOSIT.TIME,
+    PROFIT = html.report.phase1$.DEPOSIT
   ) %>% build.tickets('MONEY')
   rows <- nrow(table)
   if (!rows) {
     return(build.tickets.raw())
   }
-  item <- report.phase1$.ITEM
+  item <- html.report.phase1$.ITEM
   table.index <- 1:rows
   table.types <- table[, type]
   table.tickets <- table[, ticket]
@@ -112,7 +128,7 @@ fetch.html.data.tickets.mt4ea <- function(report.phase1, get.open.fun, mysql.set
                      'CTIME', 'COMMENT', 'VOLUME', 'CPRICE', 'SL', 'TP', 'PROFIT')) %>%
       extract(j = c('ITEM', 'TYPE') := list(item, toupper(TYPE))) %>%
       extract(
-        i = CTIME >= report.phase1$.END.TIME - 60 & COMMENT == 'close at stop',
+        i = CTIME >= html.report.phase1$.END.TIME - 60 & COMMENT == 'close at stop',
         j = EXIT := paste(COMMENT, 'so', sep = ' / '))
     symbol <- item.to.symbol(item, symbols.setting[, SYMBOL])
     if (!is.na(symbol)) {
@@ -129,10 +145,10 @@ fetch.html.data.tickets.mt4ea <- function(report.phase1, get.open.fun, mysql.set
   build.tickets.raw()
 } # FINISH
 
-fetch.html.data.tickets.mt4trade <- function(report.phase1) {
+fetch.html.data.tickets.mt4trade <- function(html.report.phase1) {
   table <-
     suppressWarnings(
-      readHTMLTable(report.phase1$PATH, stringsAsFactors = FALSE, encoding = 'UTF-8', which = 1,
+      readHTMLTable(html.report.phase1$PATH, stringsAsFactors = FALSE, encoding = 'UTF-8', which = 1,
                     colClasses = c('numeric', time.char.to.posixct, toupper, num.char.to.num, toupper,
                                    num.char.to.num, num.char.to.num, num.char.to.num, time.char.to.posixct,
                                    num.char.to.num, num.char.to.num, num.char.to.num, num.char.to.num, num.char.to.num)
@@ -148,7 +164,7 @@ fetch.html.data.tickets.mt4trade <- function(report.phase1) {
   }
   table %<>%
     extract(ticket.index) %>%
-    extract(j = COMMENT := report.phase1$.COMMENT[ticket.index]) %>%
+    extract(j = COMMENT := html.report.phase1$.COMMENT[ticket.index]) %>%
     set_colnames(names(TICKETS.TEMPLATE)[1:15]) %>%
     setkey(CTIME) %>%
     extract(j = NAs := rowSums(is.na(.))) %>%
@@ -168,12 +184,12 @@ fetch.html.data.tickets.mt4trade <- function(report.phase1) {
   build.tickets.raw()
 } # FINISH
 
-fetch.html.data.tickets.mt5ea <- function(report.phase1, get.open.fun, mysql.setting, timeframe.tickvalue,
+fetch.html.data.tickets.mt5ea <- function(html.report.phase1, get.open.fun, mysql.setting, timeframe.tickvalue,
                                           currency, symbols.setting) {
   ## 13 columns
   blocks <-
     suppressWarnings(
-      readHTMLTable(report.phase1$PATH, stringsAsFactors = FALSE, encoding = 'UTF-8', which = 2,
+      readHTMLTable(html.report.phase1$PATH, stringsAsFactors = FALSE, encoding = 'UTF-8', which = 2,
                     colClasses = c('character', num.char.to.num, toupper, toupper, toupper, num.char.to.num,
                                    num.char.to.num, num.char.to.num, rep('character', 5)))
     ) %>% as.data.table %>% html.data.mt5.table.blocks(c('Orders', 'Deals'))
@@ -183,15 +199,16 @@ fetch.html.data.tickets.mt5ea <- function(report.phase1, get.open.fun, mysql.set
   build.tickets.raw()
 } # FINISH
 
-fetch.html.data.tickets.mt5trade <- function(report.phase1, get.open.fun, mysql.setting, timeframe.tickvalue,
+fetch.html.data.tickets.mt5trade <- function(html.report.phase1, get.open.fun, mysql.setting, timeframe.tickvalue,
                                              currency, symbols.setting) {
   ## 13 columns 
   blocks <-
     suppressWarnings(
-      readHTMLTable(report.phase1$PATH, stringsAsFactors = FALSE, encoding = 'UTF-8', which = 1,
+      readHTMLTable(html.report.phase1$PATH, stringsAsFactors = FALSE, encoding = 'UTF-8', which = 1,
                     colClasses = c('character', num.char.to.num, toupper, toupper, toupper, num.char.to.num,
-                                   num.char.to.num, num.char.to.num, rep('character', 5)))
-    ) %>% as.data.table %>% html.data.mt5.table.blocks(c('Orders', 'Trade Positions', 'Working Orders', 'Deals'))
+                                   num.char.to.num, num.char.to.num, rep('character', 5))) %>%
+        as.data.table %>% html.data.mt5.table.blocks(c('Orders', 'Trade Positions', 'Working Orders', 'Deals'))
+    ) 
   blocks$Orders %>% html.data.mt5.pending
   trade.positions <- blocks$`Trade Positions`
   cprices <- trade.positions[, V9] %>% num.char.to.num %>% set_names(trade.positions$V3)
@@ -347,9 +364,9 @@ html.data.mt5.table.blocks <- function(table, blocks) {
     set_names(blocks)
 } # FINISH
 
-fetch.html.data.tickets.mt4m_closed <- function(report.phase1) {
+fetch.html.data.tickets.mt4m_closed <- function(html.report.phase1) {
   suppressWarnings(
-    readHTMLTable(report.phase1$PATH, stringsAsFactors = FALSE, encoding = 'UTF-8', which = 1,
+    readHTMLTable(html.report.phase1$PATH, stringsAsFactors = FALSE, encoding = 'UTF-8', which = 1,
                   colClasses = c('numeric', rep('character', 2), time.char.to.posixct, toupper, toupper,
                                  num.char.to.num, num.char.to.num, time.char.to.posixct, num.char.to.num, num.char.to.num,
                                  num.char.to.num, num.char.to.num, num.char.to.num, num.char.to.num, num.char.to.num,
@@ -364,10 +381,10 @@ fetch.html.data.tickets.mt4m_closed <- function(report.phase1) {
   build.tickets.raw()
 } # FINISH
 
-fetch.html.data.tickets.mt4m_raw <- function(report.phase1) {
+fetch.html.data.tickets.mt4m_raw <- function(html.report.phase1) {
   table <-
     suppressWarnings(
-      readHTMLTable(report.phase1$PATH, stringsAsFactors = FALSE, encoding = 'UTF-8', which = 1,
+      readHTMLTable(html.report.phase1$PATH, stringsAsFactors = FALSE, encoding = 'UTF-8', which = 1,
                     colClasses = c('numeric', 'character', time.char.to.posixct, toupper, toupper, num.char.to.num,
                                    num.char.to.num, num.char.to.num, num.char.to.num, time.char.to.posixct,
                                    num.char.to.num, rep('character', 6), num.char.to.num, num.char.to.num,
@@ -389,7 +406,6 @@ fetch.html.data.tickets.mt4m_raw <- function(report.phase1) {
     build.tickets('CLOSED')
   build.tickets.raw()
 } # FINISH
-
 
 #### CALCULATION ####
 symbol.base.currency <- function(symbol) {

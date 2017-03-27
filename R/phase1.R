@@ -216,7 +216,7 @@ fetch.html.data.infos.mt4m_raw <- function() {
 
 #### FORMAT ####
 format.infos.account <- function(account) {
-  numeric.char <- str_replace_all(account, '[^[:digit:]]', '')
+  numeric.char <- str_extract(account, '[[:digit:]]+')
   ifelse(numeric.char == '', NA_integer_, as.numeric(numeric.char))
 }
 
@@ -247,8 +247,8 @@ format.infos.leverage <- function(leverage) {
   # ''' format report info: leverage '''
   # 2017-01-16: Version 0.1
   leverage.char <-
-    gsub('1:', '', leverage) %>%
-    str_extract('[[:digit:]]+')
+    str_extract(leverage, '1:[[:digit:]]+') %>%
+    str_extract('[[:digit:]]+$')
   ifelse(leverage.char == '', NA_integer_, as.numeric(leverage.char))
 } # FINISH
 
