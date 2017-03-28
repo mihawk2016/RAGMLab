@@ -38,6 +38,8 @@ html.report.phase2 <- function(html.report.phase1, default.currency=DEFAULT.CURR
     SUPPORTED.ITEM <- supported.items(ITEM.SYMBOL.MAPPING)
     UNSUPPORTED.ITEM <- unsupported.items(ITEM.SYMBOL.MAPPING)
     TICKETS[, SYMBOL := ITEM.SYMBOL.MAPPING[ITEM[1]], by = ITEM]
+    TICKETS.GROUP.EDIT <- DEFAULT.TICKETS.GROUP.EDIT
+    TICKETS.EDIT.HISTORY <- c()
     if (INFOS[, TYPE] == 'MT4-EA') {
       .DEPOSIT <- .DEPOSIT.TIME <- .END.TIME <- .ITEM <- NULL
     }
@@ -662,4 +664,12 @@ supported.items <- function(item.symbol.mapping) {
     extract(item.symbol.mapping %>% is.na %>% not %>% which)
 } # FINISH
 
-
+#### TICKETS GROUP EDIT ####
+DEFAULT.TICKETS.GROUP.EDIT <- Llist(
+  MONEY.INIT <- NULL,
+  MONEY.MIDDLE.INCLUDE <- TRUE,
+  # 'CLOSE' for close the open tickets and join open; 'INCLUDE' for just show; 'EXCLUDE' for not show;
+  OPEN <- 'INCLUDE', 
+  PENDING.INCLUDE <- TRUE,
+  WORKING.INCLUDE <- TRUE
+)

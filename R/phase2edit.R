@@ -7,8 +7,8 @@ compilePKGS(T)
 ## 2017-03-26: Version 0.1
 
 
+
 tickets.edit.init <- function(report) {
-  # report$TICKETS %>% extract(i = GROUP == 'MONEY' | (GROUP %in% c('OPEN', 'CLOSED') & !is.na(SYMBOL)))
   report$TICKETS %>% extract(i = GROUP == 'CLOSED') & !is.na(SYMBOL)
 } # FINISH
 
@@ -18,77 +18,77 @@ report.edit.reset <- function(report) {
     return(report)
   }
   within(report, {
-    ## TODO delete some Phase 4 element
+    ## TODO delete some Phase 3 element
     
+    TICKETS.GROUP.EDIT <- DEFAULT.TICKETS.GROUP.EDIT
+    TICKETS.EDIT.HISTORY <- c()
     TICKETS.EDIT <- NULL
     PHASE <- 2
   })
 }
 
 report.edit.focus.tickets <- function(report) {
-  if (is.null(report$TICKETS.EDIT)) {
-    tickets.supported(report) %>%
-      setattr('MONEY.INIT', NULL) %>%
-      setattr('MONEY.MIDDLE.INCLUDE', TRUE) %>%
-      setattr('OPEN', 'INCLUDE') %>% # 'CLOSE' for close the open tickets and join open; 'INCLUDE' for just show;
-                                     # 'EXCLUDE' for not show;
-      setattr('PENDING.INCLUDE', TRUE) %>%
-      setattr('WORKING.INCLUDE', TRUE)
-      
-  } else {
-    report$TICKETS.EDIT
-  }
+  ifelse(is.null(report$TICKETS.EDIT), tickets.edit.init(report), report$TICKETS.EDIT)
 }
 
 #### EDIT GROUP ####
 report.edit.money.init <- function(report, mony.init=NULL) {
-  tickets <- report.edit.focus.tickets(report)
   within(report, {
-    TICKETS.EDIT <- tickets %>% setattr('MONEY.INIT', money.init)
+    TICKETS.GROUP.EDIT$MONEY.INIT <- money.init
   })
 }
 
 report.edit.money.middle <- function(report, include=TRUE) {
-  tickets <- report.edit.focus.tickets(report)
   within(report, {
-    TICKETS.EDIT <- tickets %>% setattr('MONEY.MIDDLE.INCLUDE', include)
+    TICKETS.GROUP.EDIT$MONEY.MIDDLE.INCLUDE <- include
   })
 }
 
-report.edit.open <- function(report, open='CLOSE') {
+report.edit.open <- function(report, open='INCLUDE', get.open.fun=DB.O, timeframe.tickvalue='M1', 
+                             symbols.setting=SYMBOLS.SETTING, mysql.setting=MYSQL.SETTING) {
+  if (report$TICKETS.GROUP.EDIT$OPEN == open) {
+    return(report)
+  }
   tickets <- report.edit.focus.tickets(report)
   within(report, {
-    TICKETS.EDIT <- tickets %>% setattr('OPEN', open)
+    TICKETS <- switch(
+      open,
+      'CLOSE' = rbind(
+        tickets[GROUP == 'CLOSED'],
+        report.tickets.close.the.open(TICKETS[GROUP == 'OPEN'], CURRENCY, get.open.fun, timeframe.tickvalue,
+                                      symbols.setting, mysql.setting),
+        use.names = TRUE, fill = TRUE),
+      tickets[GROUP == 'CLOSED']
+    )
+    TICKETS.GROUP.EDIT$OPEN <- open
   })
 }
 
 report.edit.pending <- function(report, include=TRUE) {
-  tickets <- report.edit.focus.tickets(report)
   within(report, {
-    TICKETS.EDIT <- tickets %>% setattr('PENDING.INCLUDE', include)
+    TICKETS.GROUP.EDIT$PENDING.INCLUDE <- include
   })
 }
 
 report.edit.working <- function(report, include=TRUE) {
-  tickets <- report.edit.focus.tickets(report)
   within(report, {
-    TICKETS.EDIT <- tickets %>% setattr('WORKING.INCLUDE', include)
+    TICKETS.GROUP.EDIT$WORKING.INCLUDE <- include
   })
 }
 
-#### EDIT TICKETS ####
-# report.tickets.for.edit <- function(report) {
-#   tickets <- report.edit.focus.tickets(report)
-#   open.mode <- attr(tickets, 'OPEN')
-#   if (open.mode == 'CLOSE') {
-#     ## TODO
-#   } else {
-#     tickets
-#   }
-# }
-
-report.tickets.close.the.open <- function(report) {
-  ## TODO
+report.tickets.close.the.open <- function(open, currency, get.open.fun=DB.O, timeframe.tickvalue='M1', 
+                                          symbols.setting=SYMBOLS.SETTING, mysql.setting=MYSQL.SETTING) {
+  open %>%
+    setkey(SYMBOL) %>%
+    extract(
+      j = PROFIT := {
+        symbol <- SYMBOL[1]
+        pip <- cal.pips(TYPE, OPRICE, CPRICE, symbols.setting[symbol, DIGITS])
+        tickvalue <- cal.tick.value(symbol, CTIME, get.open.fun, mysql.setting, timeframe.tickvalue,
+                                    currency, symbols.setting)
+        cal.profit(VOLUME, tickvalue, pip)
+      },
+      by = SYMBOL
+    )
 }
-
 
