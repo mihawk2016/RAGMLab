@@ -665,7 +665,7 @@ supported.items <- function(item.symbol.mapping) {
 } # FINISH
 
 #### TICKETS GROUP EDIT ####
-DEFAULT.TICKETS.GROUP.EDIT <- Llist(
+DEFAULT.TICKETS.GROUP.EDIT <- list(
   MONEY.INIT <- NULL,
   MONEY.MIDDLE.INCLUDE <- TRUE,
   # 'CLOSE' for close the open tickets and join open; 'INCLUDE' for just show; 'EXCLUDE' for not show;
