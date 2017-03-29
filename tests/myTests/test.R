@@ -15,10 +15,16 @@ choose.files <- function(choice) {
 
 
 test.phase1 <- function(choice) {
-  choose.files(choice) %>% read.mq.file %T>% print
+  choose.files(choice) %>% read.mq.file
 }
 
 
 #### TEST ####
-# TEST.RESULT <- test.phase1() %>% lapply(html.tickets.raw) %T>% print
-TEST.RESULT <- test.phase1('MT5-Trade') %>% lapply(html.report.phase2) %T>% print
+TEST.RESULT.PHASE1 <- test.phase1(9) %T>% print # OK
+message('PHASE 1 TEST OK')
+TEST.RESULT.PHASE2 <- TEST.RESULT.PHASE1 %>% html.reports.phase2(parallel=FALSE) %T>% print # OK, but parallel in linux not modified
+message('PHASE 2 TEST OK')
+TEST.RESULT.PHASE3 <- TEST.RESULT.PHASE2 %>% reports.phase3(parallel.tickets=FALSE) %T>% print
+message('PHASE 3 TEST OK')
+
+

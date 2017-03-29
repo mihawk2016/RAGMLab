@@ -10,7 +10,7 @@ compilePKGS(T)
 
 
 tickets.edit.init <- function(report) {
-  report$TICKETS %>% extract(i = GROUP == 'CLOSED') & !is.na(SYMBOL)
+  report$TICKETS %>% extract(i = GROUP == 'CLOSED' & !is.na(SYMBOL))
 } # FINISH
 
 

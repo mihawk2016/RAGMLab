@@ -12,7 +12,7 @@ html.reports.phase2 <- function(html.reports.phase1, default.currency=DEFAULT.CU
                                 timeframe.tickvalue='M1', symbols.setting=SYMBOLS.SETTING,
                                 parallel=PARALLEL.THRESHOLD.GENERATE.TICKETS) {
   if (is.numeric(parallel)) {
-    parallel <- length(report) >= parallel
+    parallel <- length(html.reports.phase1) >= parallel
   }
   if (!parallel) {
     phase2data <- lapply(html.reports.phase1, html.report.phase2, default.currency, default.leverage, get.open.fun,
@@ -42,9 +42,16 @@ html.report.phase2 <- function(html.report.phase1, default.currency=DEFAULT.CURR
     TICKETS.EDIT.HISTORY <- c()
     if (INFOS[, TYPE] == 'MT4-EA') {
       .DEPOSIT <- .DEPOSIT.TIME <- .END.TIME <- .ITEM <- NULL
+      # rm(.DEPOSIT, .DEPOSIT.TIME, .END.TIME, .ITEM, inherits = TRUE)
+      # rm(list = c('.DEPOSIT', '.DEPOSIT.TIME', '.END.TIME', '.ITEM'))
+      # rm(.DEPOSIT)
+      # rm(.DEPOSIT.TIME)
+      # rm(.END.TIME)
+      # rm(.ITEM)
     }
     if (INFOS[, TYPE] == 'MT4-Trade') {
       .COMMENT <- NULL
+      # rm(.COMMENT)
     }
     PHASE <- 2
   })
@@ -666,10 +673,10 @@ supported.items <- function(item.symbol.mapping) {
 
 #### TICKETS GROUP EDIT ####
 DEFAULT.TICKETS.GROUP.EDIT <- list(
-  MONEY.INIT <- NULL,
-  MONEY.MIDDLE.INCLUDE <- TRUE,
+  MONEY.INIT = NULL,
+  MONEY.MIDDLE.INCLUDE = TRUE,
   # 'CLOSE' for close the open tickets and join open; 'INCLUDE' for just show; 'EXCLUDE' for not show;
-  OPEN <- 'INCLUDE', 
-  PENDING.INCLUDE <- TRUE,
-  WORKING.INCLUDE <- TRUE
+  OPEN = 'INCLUDE', 
+  PENDING.INCLUDE = TRUE,
+  WORKING.INCLUDE = TRUE
 )
