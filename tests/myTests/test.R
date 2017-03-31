@@ -20,11 +20,14 @@ test.phase1 <- function(choice) {
 
 
 #### TEST ####
-TEST.RESULT.PHASE1 <- test.phase1(9) %T>% print # OK
+options(warn = 2)
+TEST.RESULT.PHASE1 <- test.phase1(7) %T>% print # OK
 message('PHASE 1 TEST OK')
 TEST.RESULT.PHASE2 <- TEST.RESULT.PHASE1 %>% html.reports.phase2(parallel=FALSE) %T>% print # OK, but parallel in linux not modified
 message('PHASE 2 TEST OK')
 TEST.RESULT.PHASE3 <- TEST.RESULT.PHASE2 %>% reports.phase3(parallel.tickets=FALSE) %T>% print
 message('PHASE 3 TEST OK')
+TEST.RESULT.PHASE3[[1]] %>% output.report.html
+message('RENDER HTML')
 
-
+options(warn = 0)

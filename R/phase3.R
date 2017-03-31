@@ -356,8 +356,7 @@ tickets.extra.columns <- function(timeseries.one.ticket, ticket, otime, ctime, i
 #### STATISTICS ####
 tickets.statistics.pl.table <- function(tickets.edited) {
   tickets.statistics.by.pl(tickets.edited) %>%
-    setkey(PL) %>%
-    extract(tickets.statistics.continuous(tickets.edited)) %>%
+    extract(tickets.statistics.continuous(tickets.edited), on = 'PL') %>%
     rbind(.[, .(PL = 'TOTAL',
                 N = sum(N),
                 SUM = round(sum(SUM), 2),
@@ -432,9 +431,18 @@ tickets.statistics.profit_yield_trade <- function(tickets.edited, yield, trade.d
     TOTAL = c(round(sum(tickets.edited[, NPROFIT]), 2), yield, nrow(tickets.edited))
   ) %>%
     extract(
+      i = c(1, 3),
       j = c('DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY') := {
         daily <- round(TOTAL / trade.day, 2)
         list(daily, round(daily * 5, 2), round(daily * 21.76, 2), round(daily * 252, 2))
+      }
+    ) %>%
+    extract(
+      i = c(2),
+      j = c('DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY') := {
+        daily_add1 <- (TOTAL + 1) ^ (1 / trade.day)
+        c(daily_add1, daily_add1 ^ 5, daily_add1 ^ 21.76, daily_add1 ^ 252) %>% subtract(1) %>% round(2) %>%
+          as.list
       }
     )
 }
