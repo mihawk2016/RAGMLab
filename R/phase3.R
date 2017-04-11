@@ -33,9 +33,9 @@ report.phase3 <- function(report.phase2, get.open.fun=DB.O, timeframe.tickvalue=
                           symbols.setting=SYMBOLS.SETTING, mysql.setting=MYSQL.SETTING,
                           default.money=DEFAULT.INIT.MONEY, get.ohlc.fun=DB.OHLC, timeframe.report='H1',
                           parallel=PARALLEL.THRESHOLD.DB.SYMBOLS, margin.base=1500) {
-  if (is.null(report.phase2$TICKETS.EDIT)) {
-    report.phase2$TICKETS.EDIT <- tickets.edit.init(report.phase2)
-  }
+  # if (is.null(report.phase2$TICKETS.EDIT)) {
+  #   report.phase2$TICKETS.EDIT <- tickets.edit.init(report.phase2)
+  # }
   within(report.phase2, {
     tickets.edited(TICKETS.EDIT, CURRENCY, get.open.fun, timeframe.tickvalue, symbols.setting, mysql.setting)
     TICKETS.MONEY <- tickets.money(TICKETS.EDIT, TICKETS[GROUP == 'MONEY'], TICKETS.GROUP.EDIT$MONEY.INIT,

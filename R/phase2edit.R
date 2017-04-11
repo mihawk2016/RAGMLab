@@ -23,7 +23,7 @@ report.edit.reset <- function(report) {
     
     TICKETS.GROUP.EDIT <- DEFAULT.TICKETS.GROUP.EDIT
     TICKETS.EDIT.HISTORY <- c()
-    TICKETS.EDIT <- NULL
+    TICKETS.EDIT <- TICKETS[GROUP == 'CLOSED' & !is.na(SYMBOL)]
     PHASE <- 2
   })
 }

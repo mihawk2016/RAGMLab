@@ -40,18 +40,12 @@ html.report.phase2 <- function(html.report.phase1, default.currency=DEFAULT.CURR
     TICKETS[, SYMBOL := ITEM.SYMBOL.MAPPING[ITEM[1]], by = ITEM]
     TICKETS.GROUP.EDIT <- DEFAULT.TICKETS.GROUP.EDIT
     TICKETS.EDIT.HISTORY <- c()
+    TICKETS.EDIT <- TICKETS[GROUP == 'CLOSED' & !is.na(SYMBOL)]
     if (INFOS[, TYPE] == 'MT4-EA') {
       .DEPOSIT <- .DEPOSIT.TIME <- .END.TIME <- .ITEM <- NULL
-      # rm(.DEPOSIT, .DEPOSIT.TIME, .END.TIME, .ITEM, inherits = TRUE)
-      # rm(list = c('.DEPOSIT', '.DEPOSIT.TIME', '.END.TIME', '.ITEM'))
-      # rm(.DEPOSIT)
-      # rm(.DEPOSIT.TIME)
-      # rm(.END.TIME)
-      # rm(.ITEM)
     }
     if (INFOS[, TYPE] == 'MT4-Trade') {
       .COMMENT <- NULL
-      # rm(.COMMENT)
     }
     PHASE <- 2
   })
